@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  AthenaSampleRptOptimizedNamedQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Database: "nyctaxi"
+      Description: "Sample reporting query re-written to work on optimized data."
+      Name: "nyctaxi:opt:sample_report_qry"
+      QueryString: >
+                  /* nyctaxi:opt:sample_report_qry */
+                  /*
+                  This is the reporting query re-written for the optimized dataset.
+                  It takes ~15 secs to run and scans only ~17MB of data.
+                  This is about 3x speed-up and 90% 'data scanned' cost reduction 
+                  compared to raw dataset query.
+                  */
+                   SELECT pu_datetime, total_amount, tip_amount, payment_type_name, ratecode_name
+                   FROM yellow_opt
+                   WHERE cast(pu_year AS BigInt) = 2017
+                   AND cast(pu_month AS BigInt) = 1
+                   AND pu_day BETWEEN 1 AND 10
+                   ORDER BY  pu_year, pu_month
+                 
+  AthenaSampleAggQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Database: "nyctaxi"
+      Description: "A sample aggregation query on raw data."
+      Name: "nyctaxi:raw:sample_agg_qry"
+      QueryString: >
+                  /* nyctaxi:raw:sample_agg_qry */
+                  /* 
+                    This is a query that calculates avg trip amount, avg trip distance, 
+                    and count of trips grouped by year, month, day, and hour.
+                    This query takes about 38 seconds to execute.
+                    Also, Athena needs to scan the entire ~165MB of compressed raw data.
+                  */
+                   WITH yellow2 AS (
+                   SELECT 
+                     date_parse(yellow.tpep_pickup_datetime,'%Y-%m-%d %H:%i:%s') AS pu_datetime, 
+                     yellow.tip_amount, 
+                     yellow.trip_distance,
+                     yellow.payment_type
+                     FROM yellow
+                        )
+                    SELECT year(yellow2.pu_datetime) AS pu_year,
+                      month(yellow2.pu_datetime) AS pu_month,
+                      day(yellow2.pu_datetime) AS pu_day,
+                      hour(yellow2.pu_datetime) AS pu_hour,
+                      round(avg(yellow2.tip_amount), 2) AS avg_tip_amount,
+                      round(avg(yellow2.trip_distance), 2) AS avg_trip_distance,
+                      count(yellow2.tip_amount) AS trip_count
+                    FROM yellow2    
+                     WHERE year(yellow2.pu_datetime) = 2017 
+                     AND month(yellow2.pu_datetime) = 1
+                     GROUP BY  year(yellow2.pu_datetime), month(yellow2.pu_datetime), day(yellow2.pu_datetime), hour(yellow2.pu_datetime)
+                     ORDER BY  year(yellow2.pu_datetime), month(yellow2.pu_datetime), day(yellow2.pu_datetime), hour(yellow2.pu_datetime) 
+  
+  AthenaOptimizedAggNamedQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Database: "nyctaxi"
+      Description: "Sample aggregation query re-written to work on optimized data."
+      Name: "nyctaxi:opt:sample_agg_qry"
+      QueryString: >
+                  /* nyctaxi:opt:sample_agg_qry */
+                  /* 
+                    Sample aggregation query re-written to work on optimized dataset.
+
+                    The query takes ~3 secs to run and scans only ~52MB of data.
+                    We've achieved 12.5x speedup and 69% 'data scanned' cost reduction 
+                    compared to raw dataset query.
+                  */
+                   SELECT pu_year,
+                          pu_month,
+                          pu_day,
+                          hour(pu_datetime) AS pu_hour,
+                          round(avg(tip_amount), 2) AS avg_tip_amount,
+                          round(avg(trip_distance), 2) AS avg_trip_distance,
+                          count(tip_amount) AS trip_count
+                     FROM yellow_opt
+                     WHERE cast(pu_year AS BigInt) = 2017 
+                     AND cast(pu_month AS BigInt) = 1 
+                     GROUP BY pu_year, pu_month, pu_day, hour(pu_datetime)
+                     ORDER BY pu_year, pu_month, pu_day, hour(pu_datetime)      
+  

@@ -1,0 +1,332 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      AccessControl: BucketOwnerFullControl
+      BucketName: !Join ['-', [!Ref 'AWS::StackName', !Ref 'AWS::AccountId']]
+      
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+                
+  CopyDataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      FunctionName: !Join ['-', ['copy_raw_nyctaxi_data', !Ref 'AWS::StackName']]
+      #'copy_raw_nyctaxi_data'
+      MemorySize: 512
+      Runtime: python2.7
+      Timeout: 120
+      Handler: index.handler
+      Code:
+        ZipFile: 
+          Fn::Sub:
+          - |-
+            import json
+            import boto3
+            import logging
+            import cfnresponse
+
+            LOGGER = logging.getLogger()
+            LOGGER.setLevel(logging.INFO)
+
+            def handler(event, context):
+                
+                # Get the s3_prefix parameter, if it exists
+                src_s3_prefix = event.get('s3_prefix')
+
+                # Get CloudFormation-specific parameters, if they exist
+                cfn_stack_id = event.get('StackId')
+                cfn_request_type = event.get('RequestType')
+
+                # Set source and destination S3 buckets    
+                DEST_BUCKET_NAME = '${DestS3BucketName}'
+                SOURCE_BUCKET_NAME = 'ant313-workshop-dub'
+
+                # Was the function triggered by a CloudFormation resource deletion?
+                # If so, delete all objects in dest bucket and return
+                if cfn_stack_id and cfn_request_type == 'Delete':
+                    s3 = boto3.resource('s3')
+
+                    try:
+                        bucket = s3.Bucket(DEST_BUCKET_NAME)
+                        bucket.objects.delete()
+                        message = 'Deleted NYC Taxi trips datasets and ETL script.'
+                    except botocore.exceptions.ClientError as e:
+                        # If a client error is thrown, then check that it was a 404 error.
+                        # If it was a 404 error, then the bucket does not exist.
+                        error_code = int(e.response['Error']['Code'])
+                        if error_code == 404:
+                            message = 'NYC Taxi trips datasets and ETL script bucket does not exist.'
+                    
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {
+                            'Message': message
+                            },
+                            context.log_stream_name)
+
+                    return {
+                        'statusCode': 200,
+                        'body': json.dumps(message)
+                    }
+                
+                # Check if a specific S3 object needs to be copied from source
+                if not src_s3_prefix:
+                    # Copy all raw dataset if no prefix is specified
+                    OBJ_KEY_LIST = [
+                        'data/raw/nyctaxi/yellow/yellow_tripdata_2017-01.csv.bz2',
+                        'data/raw/nyctaxi/yellow/yellow_tripdata_2017-02.csv.bz2',
+                        'data/raw/nyctaxi/paymenttype/paymenttype.csv',        
+                        'data/raw/nyctaxi/ratecode/ratecode.csv',
+                        'data/raw/nyctaxi/taxizone/taxi_zone_lookup.csv',
+                        'scripts/nyctaxi_create_optimized_dataset_job.py'
+                        ]
+                else:
+                    # Otherwise, copy only the object with specified prefix
+                    OBJ_KEY_LIST = [src_s3_prefix]
+                
+                # Copy S3 objects
+                s3_client = boto3.client('s3')
+                s3 = boto3.resource('s3')
+                
+                for obj_key in OBJ_KEY_LIST:
+                    
+                    LOGGER.info('Copying... s3://{}/{}'.format(SOURCE_BUCKET_NAME, obj_key))
+                    
+                    response = s3_client.copy_object(
+                        Bucket=DEST_BUCKET_NAME,
+                        CopySource={
+                            'Bucket': SOURCE_BUCKET_NAME,
+                            'Key': obj_key
+                        },
+                        Key=obj_key
+                        )
+
+                # If invoked to copy files via CloudFormation custom resource
+                if cfn_stack_id and cfn_request_type == 'Create':
+                    # Send a response to CloudFormation pre-signed URL
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {
+                        'Message': 'Ingested NYC Taxi trips raw dataset and copied ETL script.'
+                        }, 
+                        context.log_stream_name)
+                
+                return {
+                    'statusCode': 200,
+                    'body': json.dumps('Ingested NYC Taxi trips raw dataset and ETL script.')
+                }
+
+          - {
+            DestS3BucketName : !Ref S3Bucket
+          } 
+
+  
+  CopyTaxiBucketObjects:
+    Type: 'Custom::CopyTaxiBucketObjects'
+    DependsOn:
+      - LambdaExecutionRole
+    Properties:
+      ServiceToken: !GetAtt 
+        - CopyDataFunction
+        - Arn
+      BucketName: !Ref S3Bucket
+      
+  GlueCrawlerRole:  
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: AWSGlueCrawlerRole-nyctaxi
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+                - "athena.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: AWSGlueCrawlerS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Effect: Allow
+                Resource: !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref 'S3Bucket'
+                    - /*
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
+        
+  GlueJobRole:     
+     Type: AWS::IAM::Role
+     DeletionPolicy: Delete
+     Properties:
+      RoleName: AWSGlueServiceRole-nyctaxi-optimize-job
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        
+  NotebookExecutionRole:     
+     Type: AWS::IAM::Role
+     DeletionPolicy: Delete
+     Properties:
+      RoleName: AWSGlueServiceSageMakerNotebookRole-nyctaxi
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "sagemaker.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceNotebookRole
+        - arn:aws:iam::aws:policy/AWSGlueConsoleSageMakerNotebookFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess      
+
+  FullAccessGlueRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: ANT313-FullAccessGlueRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+                - "s3.amazonaws.com"
+                - "athena.amazonaws.com"
+                - "sagemaker.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceNotebookRole
+        - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
+        - arn:aws:iam::aws:policy/AWSGlueConsoleSageMakerNotebookFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess     
+
+  GlueRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: AWSGlueServiceRole-nyctaxi-dev-endpoint
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceNotebookRole
+        - arn:aws:iam::aws:policy/AWSGlueConsoleSageMakerNotebookFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        
+  
+  GlueDevEndpoint:
+    Type: AWS::Glue::DevEndpoint
+    DependsOn:
+      - CopyTaxiBucketObjects
+    Properties:
+      EndpointName: !Join ['-', ['nyctaxi-dev-endpoint', !Ref 'AWS::StackName']]
+      NumberOfNodes: 10
+      PublicKey: !Join [' ', ['ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCridroM8P+ykj+JEv6jKPSvfK46DHMxIozvThYYkSVAu5h3yqcteJCkRlw9WpS7EqLROBqIne5EZEINNnaW44sK7ADOcOU3OnqBYo+0zOy43yrLeFmxvchIDBnGxYwbAAlyKlQB5P8eckbh6IHse9ZAv543Jwqg1Zov4HZN4bnwIsK5IsN02LRhXGD9k4/Z3WB2yye8DlW1tYDeDWIymFNIyndA+pEnQ1KXXCBiDXtfXq5BjkCG5LSVVwt5wd9Fl/nVu/mOECqeqHzdOtTjemZTm9i6yTrXRheG+zlYle6ozAPgo2H9gBzuopP7lgsyLps/wIQsltBS+03Ryp4sExT', 'rsa-key-20181018']]
+      RoleArn: !GetAtt GlueRole.Arn
+      
+     
+  AthenaSampleRptNamedQuery:
+    Type: AWS::Athena::NamedQuery
+    Properties:
+      Database: "nyctaxi"
+      Description: "A typical reporting query on raw data."
+      Name: "nyctaxi:raw:sample_report_qry"
+      QueryString: >
+                  /* nyctaxi:raw:sample_report_qry */
+                  /* 
+                  A typical reporting query on raw data. 
+                  On the raw dataset, this query takes ~47 secs to complete.
+                  Also, Athena needs to scan the entire ~165MB of compressed raw data.
+                  */
+                  WITH yellow AS (
+                  SELECT date_parse(yellow.tpep_pickup_datetime,'%Y-%m-%d %H:%i:%s') AS pu_datetime, yellow.*
+                  FROM yellow
+                  )
+                  SELECT pu_datetime, total_amount, tip_amount, paymenttype.name, ratecode.name
+                  FROM yellow
+                  JOIN paymenttype
+                  ON yellow.payment_type = paymenttype.id
+                  JOIN ratecode
+                  ON yellow.ratecodeid = ratecode.id
+                  JOIN taxizone AS pu_taxizone
+                  ON yellow.pulocationid = pu_taxizone.locationid
+                  JOIN taxizone AS do_taxizone
+                  ON yellow.dolocationid = do_taxizone.locationid
+                  WHERE year(pu_datetime) = 2017
+                  AND month(pu_datetime) = 1
+                  AND day(pu_datetime) BETWEEN 1 AND 10
+                  ORDER BY  year(pu_datetime), month(pu_datetime), day(pu_datetime) 
+                    
+          
+Outputs:
+  S3BucketName:
+    Description: My S3 bucket
+    Value: !Ref S3Bucket
+   
+  GlueEndPoint:
+    Description: My Glue End Point
+    Value: !Ref GlueDevEndpoint
+  Message:
+    Description: The message from the lambda copy resource.
+    Value: !GetAtt 'CopyTaxiBucketObjects.Message'    
