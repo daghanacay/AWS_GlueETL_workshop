@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+    ProdOptimizedCrawler:
+      Type: AWS::Glue::Crawler
+      Properties:
+        Name: nyctaxi-optimized-crawler-prod
+        Role: !ImportValue CloudToolsMeetup-JAN-Glue-GlueCrawlerRoleARN
+        DatabaseName: nyctaxi
+        Targets:
+          S3Targets:
+            - Path: 
+                Fn::Join:
+                  - ''
+                  - - 's3://'
+                    - Fn::ImportValue: CloudToolsMeetup-JAN-Glue-ETL-Bucket
+                    - '/data/prod/nyctaxi/yellow_rpt'

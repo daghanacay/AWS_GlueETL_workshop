@@ -323,10 +323,16 @@ Outputs:
   S3BucketName:
     Description: My S3 bucket
     Value: !Ref S3Bucket
-   
+    Export: 
+      Name: !Sub ${AWS::StackName}-ETL-Bucket
   GlueEndPoint:
     Description: My Glue End Point
     Value: !Ref GlueDevEndpoint
   Message:
     Description: The message from the lambda copy resource.
-    Value: !GetAtt 'CopyTaxiBucketObjects.Message'    
+    Value: !GetAtt 'CopyTaxiBucketObjects.Message'   
+  GlueCrawlerRoleARN:
+    Description: Role for workshop AWSGlueCrawlerRole
+    Value: !GetAtt GlueCrawlerRole.Arn
+    Export: 
+      Name: !Sub ${AWS::StackName}-GlueCrawlerRoleARN
