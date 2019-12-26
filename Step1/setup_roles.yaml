@@ -6,7 +6,7 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       AccessControl: BucketOwnerFullControl
-      BucketName: !Join ['-', ['jan-worksho-etl-glue', !Ref 'AWS::AccountId']]
+      BucketName: !Join ['-', ['jan-workshop-etl-glue', !Ref 'AWS::AccountId']]
       
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
