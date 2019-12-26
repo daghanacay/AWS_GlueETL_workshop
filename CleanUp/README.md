@@ -8,6 +8,11 @@ Once you are done with the lab, follow the instructions below to clean-up your a
 - Go to **Jobs**, then select **nyctaxi-create-optimized-dataset**. Click Action, then Delete. Confirm deletion.
 - Go to **Triggers**, then select **nyctaxi-raw-crawler-SUCCESS**, **6amScheludedTrigger**, and **nyctaxi-create-optimized-dataset-job-SUCCESS**. Click Action, then Delete. Confirm deletion.
 - Go to **Notebooks**, then select **aws-glue-nyctaxi-notebook**. Click Action, then Stop. Wait until notebook status changes to Stopped. Click Action again, then Delete.
+- Finally go to S3 and delete buckets
+  - **melbournecloudtoolsmeetup.xxxx** bucket
+  - **aws-athena-query-results-xxx**
+  - **aws-glue-scripts-xxx**
+  - **aws-glue-temporary-xxxx**
 
 Finally, delete the workshop's AWS CloudFormation stack to clean-up remaining resources.
 - Navigate to the AWS CloudFormation console
@@ -17,4 +22,4 @@ Finally, delete the workshop's AWS CloudFormation stack to clean-up remaining re
 
 You're done cleaning-up your account!
 
->WARNING: After deleting the stacks make sure **Dev endpoints** will have no endpoints since keeping it up will cost you ~$50 daily.
+>WARNING: After deleting the stacks make sure Glue ETL **Dev endpoints** will have no endpoints since keeping it up will cost you ~$50 daily.

@@ -93,10 +93,9 @@ Next, on the top right, click the Test button. Wait until you receive Execution 
 - Select **NYC production workflow** and from the **Actions** select **Run**
 
 After the execution is finished rerun the query in athena 
+
 ```
-{
-"s3_prefix": "data/raw/nyctaxi/yellow/yellow_tripdata_2017-03.csv.bz2"
-}
+SELECT count(*) AS march_count FROM yellow_rpt WHERE cast(pu_month AS BigInt) = 3 GROUP BY yellow_rpt.pu_month
 ```
 and see the result of workflow. You can also visit and see if there are 31 objects for January and 28 objects for February in the following locations:
 
