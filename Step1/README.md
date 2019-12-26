@@ -1,16 +1,25 @@
 # Creating the data and setting up the environment
 
+We need to create a new cloud9 environment with name **NYC-workshop-aws-meetup** and set the configuration as shown below:
+
+![Cloud9](./images/Cloud9Env.png)
+
+Check out the workshop code using 
+```
+git clone https://github.com/daghanacay/AWS_GlueETL_workshop.git && cd AWS_GlueETL_workshop/Step1
+```
+
 We will first set up the data from NYC taxi trips from Jan to March 2017 approximately 2M rows in 3 files and 2.5GB uncompressed data. This will take approximately 10 mins. Execute the command below in Cloud9
 
 ```aws cloudformation deploy --template-file setup_roles.yaml --stack-name CloudToolsMeetup-JAN-Glue --capabilities CAPABILITY_NAMED_IAM```
 
 The AWS CloudFormation template will create the following key resources for you.
-- A new data lake Amazon S3 bucket
-- Necessary IAM policies and roles for AWS Glue, Amazon Athena, and Amazon SageMaker, and AWS Lambda
+- A new Amazon S3 bucket
+- Necessary IAM policies and roles for AWS Glue, Amazon Athena, Amazon SageMaker, and AWS Lambda
 - An AWS Glue development endpoint
 - An AWS Lambda function that can copy NYC Taxi trips raw dataset files into your Amazon S3 bucket
 
-After the stack creates successfully, go to the Outputs tab and Look for the key S3BucketName. Copy and keep its value. This is your Amazon S3
+You can check the progress of the stack [here](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/stackinfo?filteringText=&filteringStatus=active&viewNested=true&hideStacks=false&stackId=arn%3Aaws%3Acloudformation%3Aus-east-1%3A282418482167%3Astack%2FCloudToolsMeetup-JAN-Glue%2Fc3cd9d50-27a9-11ea-b0fe-0e353767367b). After the stack creates successfully, go to the Outputs tab and Look for the key S3BucketName. **Copy and keep its value**. This is your Amazon S3
 bucket's name that we will use throughout the workshop. 
 
 ![Cloud Formation](./images/cloudFormation.png "Cloud formation S3 bucket name")

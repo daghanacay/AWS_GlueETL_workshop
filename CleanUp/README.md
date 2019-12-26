@@ -1,13 +1,13 @@
-# Clean up y our account
+# Clean up your account
 
 Once you are done with the lab, follow the instructions below to clean-up your account. First, delete manually-created AWS Glue resources.
 - Navigate to the AWS Glue console
-- Go to Databases then select **nyctaxi**. Click Action, then Delete database. Confirm deletion.
-- Go to Crawlers then select each **nyctaxi-optimized-crawler**, **nyctaxi-raw-crawler**, and **nyctaxi-optimized-crawler-prod**. Click Action, then Delete crawler. Confirm deletion.
-- Go to Workflows and select delete workflow **NYC production workflow**
-- Go to Jobs, then select **nyctaxi-create-optimized-dataset**. Click Action, then Delete. Confirm deletion.
-- Got to Triggers, then select **nyctaxi-raw-crawler-SUCCESS**, **6amScheludedTrigger**, and **nyctaxi-create-optimized-dataset-job-SUCCESS**. Click Action, then Delete. Confirm deletion.
-- Go to Notebooks, then select **aws-glue-nyctaxi-notebook**. Click Action, then Stop. Wait until notebook status changes to Stopped. Click Action again, then Delete.
+- Go to **Databases** then select **nyctaxi**. Click Action, then Delete database. Confirm deletion.
+- Go to **Crawlers** then select each **nyctaxi-optimized-crawler**, **nyctaxi-raw-crawler**. Click Action, then Delete crawler. Confirm deletion.
+- Go to **Workflows** and select delete workflow **NYC production workflow**
+- Go to **Jobs**, then select **nyctaxi-create-optimized-dataset**. Click Action, then Delete. Confirm deletion.
+- Go to **Triggers**, then select **nyctaxi-raw-crawler-SUCCESS**, **6amScheludedTrigger**, and **nyctaxi-create-optimized-dataset-job-SUCCESS**. Click Action, then Delete. Confirm deletion.
+- Go to **Notebooks**, then select **aws-glue-nyctaxi-notebook**. Click Action, then Stop. Wait until notebook status changes to Stopped. Click Action again, then Delete.
 
 Finally, delete the workshop's AWS CloudFormation stack to clean-up remaining resources.
 - Navigate to the AWS CloudFormation console
