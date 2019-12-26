@@ -63,7 +63,49 @@ Congratulations now you have an end to end pipeline that will trigger every morn
 > TIP!: You can find and modify your schedules and events from [Triggers section](https://console.aws.amazon.com/glue/home?region=us-east-1#etl:tab=triggers) 
 
 
-You can do much more with workflows, For example:
+# Test Workflow
+
+Navigate to the Amazon Athena console. Ensure database **nyctaxi** is selected. Refresh tables list. Copy, paste, and run the following query against the newly-created production reporting dataset table, yellow_rpt.
+
+```
+SELECT count(*) AS march_count FROM yellow_rpt WHERE cast(pu_month AS BigInt) = 3 GROUP BY yellow_rpt.pu_month
+```
+
+Notice that there is a zero count for March. Now, let's simulate as if a new file for March 2017 was added to our raw dataset.
+- Navigate to the [AWS Lambda console](https://console.aws.amazon.com/lambda/home?region=us-east-1#/functions/). 
+- On the left menu, click Functions
+- In the Functions list, select function starting with **copy_raw_nyctaxi_data**. This Lambda function was added to your functions by the cloudformation script in [Step1](../Step1/README.md)
+- Click on **Test**
+- On the Configure test event dialog...
+ - Select Create new test event
+ - For Event name, enter **IngestMarch2017**
+ - For Event body, copy and replace existing body with the JSON text below:
+```
+{
+"s3_prefix": "data/raw/nyctaxi/yellow/yellow_tripdata_2017-03.csv.bz2"
+}
+```
+ - Click Create
+
+Next, on the top right, click the Test button. Wait until you receive Execution result:succeeded. The March 2017 file has been ingested into your Raw Amazon S3 bucket! Time to see the Workflow in action
+
+- Go to workflows in [Glue Console](https://console.aws.amazon.com/glue/home?region=us-east-1#etl:tab=workflows)
+- Select **NYC production workflow** and from the **Actions** select **Run**
+
+After the execution is finished rerun the query in athena 
+```
+{
+"s3_prefix": "data/raw/nyctaxi/yellow/yellow_tripdata_2017-03.csv.bz2"
+}
+```
+and see the result of workflow. You can also visit and see if there are 31 objects for January and 28 objects for February in the following locations:
+
+- s3://<you_bucket_name>/data/prod/nyctaxi/yellow_rpt/pu_year=2017/pu_month=1/
+- s3://<you_bucket_name>/data/prod/nyctaxi/yellow_rpt/pu_year=2017/pu_month=2/
+
+# Summary
+
+Glue can be used for data discovery with crawlers, and complex ETL with workflows. You can do much more with workflows, For example:
 
 - You can do join patterns where next step starts if all the previous steps are successful
 - You can handle error events triggers to send message or do some correction action
@@ -71,13 +113,6 @@ You can do much more with workflows, For example:
 You can explore Glue [here](https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html). 
 
 If you have not done so I suggest you follow [Step4](../Step4/README.md)
-
-
-
-
-
-
-
 
 # <a name="appendix"></a> Appendix (Optional): Setting up schedular on the crawler.
 

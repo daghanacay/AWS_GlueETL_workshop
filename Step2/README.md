@@ -37,11 +37,16 @@ export BUCKET_NAME=melbournecloudtoolsmeetup.`date +%s`
 aws s3 mb s3://${BUCKET_NAME}
 ```
 
-After it is ready open the sagemaker notebook and select new **Text File**
+After it is ready open the sagemaker notebook Terminal
 
-![New Text](./images/newTextFile.png)
+![Terminal](./images/sagemakerTerminal.png)
 
-copy the contents of the **nyctaxi_raw_dataset_etl.ipynbv** and save as **nyctaxi_raw_dataset_etl.ipynb** and close the text file tab. This will take you to the Sagemaker console. double click on the **nyctaxi_raw_dataset_etl.ipynb** and ignore any errors. Follow the instructions in the SageMaker console. You can run each cell in sagemaker by clicking on run button after selecting the cell
+- Write the following 
+```
+cd SageMaker && wget https://raw.githubusercontent.com/daghanacay/AWS_GlueETL_workshop/master/Step2/nyctaxi_raw_dataset_etl.ipynb
+```
+
+Double click on the **nyctaxi_raw_dataset_etl.ipynb** and ignore any errors. Follow the instructions in the SageMaker console. You can run each cell in sagemaker by clicking on run button after selecting the cell
 
 ![Run Cell](./images/runSageMaker.png)
 
@@ -91,6 +96,10 @@ Now we have an optimized data set we can start measuring the time and cost benef
 - Click Run query
 - Observe query run time and data scanned. Compare with the results you saved from section "II.1.3 Query raw data with Amazon Athena" and notice the improvements.
 - Repeat steps 3-7 for query **sample_agg_qry**
+
+# Summary
+
+Yu can improve the  the query performance and reduce cost by transforming you data into partitioned and flat format. You can also add or remove columns to shape the data in a query ready format.
 
 Congratulations, you have finished the second step, please proceed to ![Step3](../Step3/README.md)
 

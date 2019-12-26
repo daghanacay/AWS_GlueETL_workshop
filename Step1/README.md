@@ -43,7 +43,7 @@ Finally, click on the green Run it now. This will take approximately 1 minute.
 
 # Explore Glue Catalog
 
-You can acces the Glue Catalog from the message on the top 
+You can access the Glue Catalog from the message on the top 
 
 ![Crawler Successful](./images/crawlerCompleted.png "Crawler Successful")
 
@@ -57,6 +57,8 @@ You can alternatively go to [Databases](https://console.aws.amazon.com/glue/home
 
 Scroll down, examine table schema. Fields have been identified along with their potential datatypes. You can manually change any datatype.
 
+# Summary
+
+You can create metadata about your datasets in Glue Catalog. Glue catalog is a central repository for specifying your schemas and is used by many other AWS services such as Redis and Athena.
+
 Congratulations you have finished the Step1 of the workshop. now please move to [Step2](../Step2/README.md)
-
-
