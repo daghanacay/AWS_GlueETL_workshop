@@ -112,8 +112,6 @@ Glue can be used for data discovery with crawlers, and complex ETL with workflow
 
 You can explore Glue [here](https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html). 
 
-If you have not done so I suggest you follow [Step4](../Step4/README.md)
-
 # <a name="appendix"></a> Appendix (Optional): Setting up schedular on the crawler.
 
 - Navigate to the AWS Glue console and select **nyctaxi-raw-crawler**, then click **Edit**
