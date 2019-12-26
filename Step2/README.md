@@ -94,7 +94,7 @@ Now we have an optimized data set we can start measuring the time and cost benef
 - In the search field, type nyctaxi:opt
 - Click on the query sample_report_qry to open in Athena query editor
 - Click Run query
-- Observe query run time and data scanned. Compare with the results you saved from section "II.1.3 Query raw data with Amazon Athena" and notice the improvements.
+- Observe query run time and data scanned. Compare with the results you saved from earlier query time we spent on raw data.
 - Repeat steps 3-7 for query **sample_agg_qry**
 
 # Summary

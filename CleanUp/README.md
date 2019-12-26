@@ -1,3 +1,5 @@
+# Clean up y our account
+
 Once you are done with the lab, follow the instructions below to clean-up your account. First, delete manually-created AWS Glue resources.
 - Navigate to the AWS Glue console
 - Go to Databases then select **nyctaxi**. Click Action, then Delete database. Confirm deletion.

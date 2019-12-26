@@ -5,7 +5,7 @@ In this workshop, we will learn cataloging datasets using AWS Glue crawlers. We 
 Athena cost https://aws.amazon.com/athena/pricing/ ~ 6cents for 10 queries
 AWS Glue Cost https://aws.amazon.com/glue/pricing/ ~ 50cents for one hour execution
 
-> WARNING It is very important that you clean your workspace before you leave since Glue end points costs ~$50 per day. Please see [Cleanup](../Clean Environment/README.md)
+> WARNING It is very important that you clean your workspace before you leave since Glue end points costs ~$50 per day. Please see [Cleanup](./CleanUp/README.md)
 
 # Prerequisites
 
@@ -25,11 +25,7 @@ We will first set up the data from NYC taxi trips from Jan to March 2017 approxi
 
 We will start querying our data using Athena. Athena is great way to do exploratory data analysis over unstructured data in S3. After initial investigation we will apply multiple transformations to data using Sagemaker Notebooks. You can start by going to [Step2](../Step2/README.md)
 
-## Step 3 Productionize the ETL pipeline
-
+## Step 3 Productionize the ETL pipelne
 We will take our Sagemaker notebook and build an automated ETL pipeline using Workflows. Workflow will kick in every day at 6:00am UTC and apply all transformations to the data. This section will finalize our workshop. You can start by going to [Step3](../Step3/README.md)
 
-> WARNING It is very important that you clean your workspace before you leave since Glue end points costs ~$50 per day. Please visit 
-
-
-
+> WARNING It is very important that you clean your workspace before you leave since Glue end points costs ~$50 per day. Please see [Cleanup](./CleanUp/README.md)
